@@ -1,2 +1,3 @@
 - isoseq3
 - minimap2
+- pbccs
