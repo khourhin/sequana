@@ -20,7 +20,13 @@ rule dataset:
     log:
         out = __dataset__log_std,
         err = __dataset__log_err
-    shell:
+    run:
+        import datetime
+        #get input_bam name
+        #get output xml name
+        #get date
+        date = (datetime.datetime.now()).isoformat(timespec="seconds")
         """
-        dataset create --type TranscriptSet {input.xml} {input.bam} {output} > {log.out} 2> {log.err}
+
+
         """
