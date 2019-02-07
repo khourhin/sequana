@@ -4,29 +4,24 @@ rule dataset:
 
     Required input:
         __dataset__input_bam: all bam files from refine step
-        __dataset__input_xml:
 
     Required output:
-        __dataset_output: output merged bam file
+        __dataset_output: output xml
 
 
 
     """
     input:
-        bam = __dataset__input_bam,
-        xml = __dataset__input_xml
+        __dataset__input_bam
     output:
-        __dataset__output
+        xml = __dataset__output
     log:
         out = __dataset__log_std,
         err = __dataset__log_err
-    run:
-        import datetime
-        #get input_bam name
-        #get output xml name
-        #get date
-        date = (datetime.datetime.now()).isoformat(timespec="seconds")
+    conda:
+        "pbcoretools.yaml"
+    shell:
         """
-
+        dataset create --type SubreadSet {output.xml} {input}
 
         """
