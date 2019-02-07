@@ -1,0 +1,4 @@
+channels:
+ - base
+dependencies:
+ - pbcoretools=0.2.4
