@@ -7,6 +7,7 @@ This pipeline is part of Sequana software (sequana.readthedocs.io)
 import os
 import sequana
 from os.path import join
+import pandas as pd
 from sequana import snaketools as sm
 sm.init("pacbio_isoseq.rules", globals())
 
@@ -20,6 +21,24 @@ exec(open(sequana.modules["minimap2_mapping_dynamic"], "r").read())
 manager = sm.PipelineManager("pacbio_isoseq", config, fastq=False)
 __data__input = manager.getrawdata()
 
+
+
+#Manage design file for SMRTCell merging
+__design__ = manager.config.design.design_file
+design = pd.read_csv(__design__, header=0, sep='\t')
+
+conds = set(list(design['Prefix']))
+
+def getBamFilesByCond(wildcards):
+    ALL = expand(__refine__output)
+    COND_dict = {}
+    for cond in conds:
+        COND_dict[cond] = []
+        for file in ALL:
+            if cond in file:
+                COND_dict[cond].append(file)
+
+return COND_dict[wildcards["COND"]]
 
 #Generate circular consensus sequence (CCS)
 __ccs__input = __data__input
@@ -47,6 +66,15 @@ __refine__log_std = "%s/logs/refine/stdout.logs" % manager.sample
 __refine__log_err = "%s/logs/refine/stderr.logs" % manager.sample
 include: sm.modules['refine']
 #expected_output.extend(expand(__refine__output, sample=manager.samples))
+
+
+if manager.config.general.merge_smrtcell:
+    #merge SMRTcell if needed
+    __dataset__input_bam = getBamFilesByCond
+    __dataset__log = "%s/logs/dataset/stdout.logs" % manager.sample
+    __dataset__output = "blabla{COND}blabla"
+    include: sm.modules["dataset"]
+    expected_output.extend(expand(__dataset__output, COND=conds))
 
 
 #Clustering and transcript clean up

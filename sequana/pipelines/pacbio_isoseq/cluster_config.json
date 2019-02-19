@@ -1,16 +1,12 @@
 {
     "__default__" :
     {
-        "ram" : "5G"
+        "ram" : "20G"
     },
 
-	"star_mapping" :
+	"ccs" :
 	{
-		"ram" : "34G"
+		"ram" : "40G"
 	},
 
-	"star_index" :
-	{
-		"ram" : "34G"
-	}
 }
