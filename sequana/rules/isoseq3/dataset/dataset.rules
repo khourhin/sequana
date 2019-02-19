@@ -16,12 +16,11 @@ rule dataset:
     output:
         xml = __dataset__output
     log:
-        out = __dataset__log_std,
-        err = __dataset__log_err
+        __dataset__log
     conda:
         "pbcoretools.yaml"
     shell:
         """
-        dataset create --type SubreadSet {output.xml} {input}
+        dataset create --type SubreadSet {output.xml} {input} >2 {log}
 
         """
