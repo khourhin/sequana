@@ -24,7 +24,7 @@ __data__input = manager.getrawdata()
 
 
 #Manage design file for SMRTCell merging
-__design__ = manager.config.design.design_file
+__design__ = manager.config.general.design_file
 design = pd.read_csv(__design__, header=0, sep='\t')
 
 conds = set(list(design['Prefix']))
@@ -38,32 +38,32 @@ def getBamFilesByCond(wildcards):
             if cond in file:
                 COND_dict[cond].append(file)
 
-return COND_dict[wildcards["COND"]]
+    return COND_dict[wildcards["COND"]]
 
 #Generate circular consensus sequence (CCS)
 __ccs__input = __data__input
-__ccs__output =  manager.getname("ccs", ".ccs.bam")
-__ccs__log_std = "%s/logs/ccs/stdout.logs" % manager.sample
-__ccs__log_err = "%s/logs/ccs/stderr.logs" % manager.sample
+__ccs__output =  "0-Preprocess/{sample}.ccs.bam"
+__ccs__log_std = "0-Preprocess/Logs/{sample}.ccs.out"
+__ccs__log_err = "0-Preprocess/Logs/{sample}.ccs.err"
 include: sm.modules['ccs']
 #expected_output.extend(expand(__ccs__output, sample=manager.samples))
 
 
 #Primer removal and demultiplexing
 __lima__input = __ccs__output
-__lima__output = manager.getname("lima", ".demux.ccs.bam")
+__lima__output = "0-Preprocess/{sample}.demux.ccs.bam"
 __lima__barcoded_primers = config["lima"]["primers"]
-__lima__log_std = "%s/logs/lima/stdout.logs" % manager.sample
-__lima__log_err = "%s/logs/lima/stderr.logs" % manager.sample
+__lima__log_std = "0-Preprocess/Logs/{sample}.lima.out"
+__lima__log_err = "0-Preprocess/Logs/{sample}.lima.err"
 include: sm.modules['lima']
 #expected_output.extend(expand(__lima__output, sample=manager.samples))
 
 
 #PolyA trimming
-__refine__input = __ccs__output
-__refine__output = manager.getname("refine", ".flnc.bam")
-__refine__log_std = "%s/logs/refine/stdout.logs" % manager.sample
-__refine__log_err = "%s/logs/refine/stderr.logs" % manager.sample
+__refine__input = __lima__output
+__refine__output = "0-Preprocess/{sample}.flnc.bam"
+__refine__log_std = "0-Preprocess/Logs/{sample}.refine.out"
+__refine__log_err = "0-Preprocess/Logs/{sample}.refine.err"
 include: sm.modules['refine']
 #expected_output.extend(expand(__refine__output, sample=manager.samples))
 
@@ -71,44 +71,45 @@ include: sm.modules['refine']
 if manager.config.general.merge_smrtcell:
     #merge SMRTcell if needed
     __dataset__input_bam = getBamFilesByCond
-    __dataset__log = "%s/logs/dataset/stdout.logs" % manager.sample
+    __dataset__log = "0-Preprocess/Logs/{sample}.merge.out"
     __dataset__output = "blabla{COND}blabla"
     include: sm.modules["dataset"]
     expected_output.extend(expand(__dataset__output, COND=conds))
+    ## TODO how to link merge xml and flnc.bam to cluster step ?
 
 
 #Clustering and transcript clean up
 __cluster__input = __refine__output
-__cluster__output = manager.getname("cluster", "_unpolished.bam")
-__cluster__log_std = "%s/logs/cluster/stdout.logs" % manager.sample
-__cluster__log_err = "%s/logs/cluster/stderr.logs" % manager.sample
+__cluster__output = "1-HQ_transcripts/Logs/{sample}_unpolished.bam"
+__cluster__log_std = "1-HQ_transcripts/Logs/{sample}.cluster.out"
+__cluster__log_err = "1-HQ_transcripts/Logs/{sample}.cluster.err"
 include: sm.modules['cluster']
 #expected_output.extend(expand(__cluster__output, sample=manager.samples))
 
 #Polishing
 __polish__input_bam = __cluster__output
 __polish__input_subreads = __data__input
-__polish__output = manager.getname("polish", "_polished.bam")
-__polish__output_hq = manager.getname("polish", ".hq.fastq.gz")
-__polish__output_lq = manager.getname("polish", ".lq.fastq.gz")
-__polish__log_std = "%s/logs/polish/stdout.logs" % manager.sample
-__polish__log_err = "%s/logs/polish/stderr.logs" % manager.sample
+__polish__output = "1-HQ_transcripts/{sample}_polished.bam"
+__polish__output_hq = "1-HQ_transcripts/{sample}.hq.fastq.gz"
+__polish__output_lq = "1-HQ_transcripts/{sample}.lq.fastq.gz"
+__polish__log_std = "1-HQ_transcripts/Logs/{sample}.polish.out"
+__polish__log_err = "1-HQ_transcripts/Logs/{sample}.polish.err"
 include: sm.modules['polish']
 expected_output.extend(expand(__polish__output, sample=manager.samples))
 
 if manager.config.general.spikes:
     __minimap2_mapping_spikes__input = __polish__output_hq
-    __minimap2_mapping_spikes__logs = manager.getname("minimap2", "_spikes.logs")
-    __minimap2_mapping_spikes__sort = manager.getname("minimap2_mapping", "_spikes_sort.bam")
-    __minimap2_mapping_spikes__output_bam = manager.getname("minimap2_mapping", "_spikes.bam")
+    __minimap2_mapping_spikes__logs = "2-Spikes_analysis/Logs/{sample}_spikes_mapping.out"
+    __minimap2_mapping_spikes__sort = "2-Spikes_analysis/{sample}_spikes_sort.bam"
+    __minimap2_mapping_spikes__output_bam = "2-Spikes_analysis/{sample}_spikes.bam"
     __minimap2_mapping_spikes__ref = config["general"]["spikes_file"]
     include: minimap2_mapping_dynamic("spikes", manager)
     expected_output.extend(expand(__minimap2_mapping_spikes__sort, sample=manager.samples))
 
     #extract no spike reads
-    __get_no_spikes__input = manager.getname("minimap2_mapping", "_spikes.bam")
-    __get_no_spikes__output = manager.getname("minimap2_mapping", "_no-spikes.fastq.gz")
-    __get_no_spikes__log = manager.getname("minimap2", "no_spike.logs")
+    __get_no_spikes__input = __minimap2_mapping_spikes__sort
+    __get_no_spikes__output = "2-Spikes_analysis/{sample}_no-spikes.fastq.gz"
+    __get_no_spikes__log = "2-Spikes_analysis/Logs/{sample}_no-spikes.out"
     include: sm.modules['get_no_spikes']
     expected_output.extend(expand(__get_no_spikes__output, sample=manager.samples))
 
@@ -119,10 +120,11 @@ if manager.config.general.spikes:
 
 #mapping with minimap2
 if manager.config.minimap2_mapping.do:
+    # todo include genome name ?
     __minimap2_mapping_genome__input = __polish__output_hq
-    __minimap2_mapping_genome__logs = manager.getname("minimap2", "_genome.logs")
-    __minimap2_mapping_genome__sort = manager.getname("minimap2_mapping", "_sort.bam")
-    __minimap2_mapping_genome__output_bam = manager.getname("minimap2_mapping", ".bam")
+    __minimap2_mapping_genome__logs = "2-Transcripts_analysis/Logs/{sample}_HQ_mapping.out"
+    __minimap2_mapping_genome__sort = "2-Transcripts_analysis/{sample}_HQ_sort.bam"
+    __minimap2_mapping_genome__output_bam = "2-Transcripts_analysis/{sample}_HQ.bam"
     __minimap2_mapping_genome__ref = config["general"]["genome_file"]
     include: minimap2_mapping_dynamic("genome", manager)
     expected_output.extend(expand(__minimap2_mapping_genome__sort, sample=manager.samples))
@@ -130,8 +132,8 @@ if manager.config.minimap2_mapping.do:
     if manager.config.general.annotation_file:
         __bedtools_coverage__input_bam = __minimap2_mapping_genome__output_bam
         __bedtools_coverage__input_annotation = config["general"]["annotation_file"]
-        __bedtools_coverage__output = manager.getname("minimap2_mapping", "_coverage.bed")
-        __bedtools_coverage__log = manager.getname("coverage", ".logs")
+        __bedtools_coverage__output = "2-Transcripts_analysis/{sample}_HQ_coverage.bed"
+        __bedtools_coverage__log = "2-Transcripts_analysis/Logs/{sample}_HQ_coverage.out"
         include: sm.modules['bedtools_coverage']
         expected_output.extend(expand(__bedtools_coverage__output, sample=manager.samples))
 
