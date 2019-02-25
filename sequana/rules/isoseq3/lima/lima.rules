@@ -25,7 +25,8 @@ rule lima:
     output:
         __lima__output
     params:
-        primers = config['lima']['primers']
+        primers = __lima__barcoded_primers,
+        options = __lima__barcoded_options
     threads:
         config['lima']['threads']
     log:
@@ -33,5 +34,5 @@ rule lima:
         err = __lima__log_err
     shell:
         """
-        lima {input} {params.primers} {output} --isoseq --no-pbi -j {threads} > {log.out} 2> {log.err}
+        lima {input} {params.primers} {output} {params.options} -j {threads} > {log.out} 2> {log.err}
         """
