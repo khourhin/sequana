@@ -1,6 +1,6 @@
 """Isoseq pipeline
 
-Affiliation: Institut Pasteur @ 2018
+Affiliation: Institut Pasteur @ 2019
 
 This pipeline is part of Sequana software (sequana.readthedocs.io)
 """
@@ -54,6 +54,7 @@ include: sm.modules['ccs']
 __lima__input = __ccs__output
 __lima__output = "0-Preprocess/{sample}.demux.ccs.bam"
 __lima__barcoded_primers = config["lima"]["primers"]
+__lima__barcoded_options = " --isoseq --no-pbi "
 __lima__log_std = "0-Preprocess/Logs/{sample}.lima.out"
 __lima__log_err = "0-Preprocess/Logs/{sample}.lima.err"
 include: sm.modules['lima']
