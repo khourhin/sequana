@@ -45,6 +45,7 @@ __ccs__input = __data__input
 __ccs__output =  "0-Preprocess/{sample}.ccs.bam"
 __ccs__log_std = "0-Preprocess/Logs/{sample}.ccs.out"
 __ccs__log_err = "0-Preprocess/Logs/{sample}.ccs.err"
+__ccs__report_file = "0-Preprocess/Logs/{sample}_report.txt"
 include: sm.modules['ccs']
 #expected_output.extend(expand(__ccs__output, sample=manager.samples))
 
