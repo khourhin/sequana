@@ -20,7 +20,8 @@ rule ccs:
     output:
         __ccs__output
     params:
-        kwargs = config['ccs']['options']
+        kwargs = config['ccs']['options'],
+        report = __ccs__report_file
     threads:
         config['ccs']['threads']
     log:
@@ -28,5 +29,5 @@ rule ccs:
         err = __ccs__log_err
     shell:
         """
-        ccs {input} {params.kwargs} {output} -j {threads} > {log.out} 2> {log.err}
+        ccs {input} {params.kwargs} {output} -j {threads} --reportFile {params.report} > {log.out} 2> {log.err}
         """
