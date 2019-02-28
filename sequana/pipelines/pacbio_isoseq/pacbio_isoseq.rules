@@ -27,7 +27,7 @@ __data__input = manager.getrawdata()
 __design__ = manager.config.general.design_file
 design = pd.read_csv(__design__, header=0, sep='\t')
 
-conds = set(list(design['Prefix']))
+conds = set(list(design['Samples']))
 
 def getBamFilesByCond(wildcards):
     ALL = expand(__refine__output)
@@ -50,11 +50,14 @@ include: sm.modules['ccs']
 #expected_output.extend(expand(__ccs__output, sample=manager.samples))
 
 
+
+
 #Primer removal and demultiplexing
 __lima__input = __ccs__output
 __lima__output = "0-Preprocess/{sample}.demux.ccs.bam"
+__lima__output_count = "0-Preprocess/{sample}.demux.ccs.lima.counts"
 __lima__barcoded_primers = config["lima"]["primers"]
-__lima__barcoded_options = " --isoseq --no-pbi "
+__lima__options = " --isoseq --no-pbi "
 __lima__log_std = "0-Preprocess/Logs/{sample}.lima.out"
 __lima__log_err = "0-Preprocess/Logs/{sample}.lima.err"
 include: sm.modules['lima']
@@ -62,7 +65,9 @@ include: sm.modules['lima']
 
 
 #PolyA trimming
-__refine__input = __lima__output
+__refine__input = __lima__output_count
+__refine__primers = config["lima"]["primers"]
+__refine__bam = "0-Preprocess/{sample}.demux.ccs.bam"
 __refine__output = "0-Preprocess/{sample}.flnc.bam"
 __refine__log_std = "0-Preprocess/Logs/{sample}.refine.out"
 __refine__log_err = "0-Preprocess/Logs/{sample}.refine.err"
