@@ -16,18 +16,29 @@ rule refine:
 
     """
     input:
-        __refine__input
+        count_lima = __refine__input,
+        primers= __refine__primers
     output:
         __refine__output
     params:
         kwargs = config['ccs']['options'],
-        primers = config['lima']['primers']
+        primers = config['lima']['primers'],
+        bam = __refine__bam
     threads:
         config['ccs']['threads']
     log:
         out = __refine__log_std,
         err = __refine__log_err
-    shell:
-        """
-        isoseq3 refine {input} {params.primers} {output} {params.kwargs} > {log.out} 2> {log.err}
-        """
+    run:
+
+        with open (input.count, 'r') as fp:
+            next(fp)
+            for line in fp:
+                row = line.split("\t")
+                if row[2].split("_")[0] in row[3].split("_")[0]:
+                    primerpair = row[2] + "--" + row[3]
+                    break
+
+
+        bam_file = splitext(params.bam)[0]+primerpair+splitext(params.bam)[1]
+        shell("isoseq3 refine %s {params.primers} {output} {params.kwargs} > {log.out} 2> {log.err}" % bam_file)

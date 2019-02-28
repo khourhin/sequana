@@ -21,12 +21,13 @@ rule lima:
         __lima__barcoded_primers: barcoded primers for PacBio libraries
     """
     input:
-        __lima__input
+        ccs = __lima__input,
+        primers = __lima__barcoded_primers
     output:
-        __lima__output
+        bam = __lima__output,
+        count = __lima__output_count
     params:
-        primers = __lima__barcoded_primers,
-        options = __lima__barcoded_options
+        options = __lima__options
     threads:
         config['lima']['threads']
     log:
@@ -34,5 +35,5 @@ rule lima:
         err = __lima__log_err
     shell:
         """
-        lima {input} {params.primers} {output} {params.options} -j {threads} > {log.out} 2> {log.err}
+        lima {input.ccs} {input.primers} {output} {params.options} -j {threads} > {log.out} 2> {log.err}
         """
