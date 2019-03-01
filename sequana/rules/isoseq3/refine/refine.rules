@@ -40,5 +40,5 @@ rule refine:
                     break
 
 
-        bam_file = splitext(params.bam)[0]+primerpair+splitext(params.bam)[1]
+        bam_file = splitext(params.bam)[0]+'.'+primerpair+splitext(params.bam)[1]
         shell("isoseq3 refine %s {params.primers} {output} {params.kwargs} > {log.out} 2> {log.err}" % bam_file)
