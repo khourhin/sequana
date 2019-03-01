@@ -31,7 +31,7 @@ rule refine:
         err = __refine__log_err
     run:
 
-        with open (input.count, 'r') as fp:
+        with open (input.count_lima, 'r') as fp:
             next(fp)
             for line in fp:
                 row = line.split("\t")
