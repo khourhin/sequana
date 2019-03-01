@@ -30,7 +30,7 @@ rule refine:
         out = __refine__log_std,
         err = __refine__log_err
     run:
-
+        from os.path import splitext
         with open (input.count_lima, 'r') as fp:
             next(fp)
             for line in fp:
