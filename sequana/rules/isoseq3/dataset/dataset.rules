@@ -18,7 +18,7 @@ rule dataset:
     log:
         __dataset__log
     conda:
-        "pbcoretools.yaml"
+        "envs/dataset.yaml"
     shell:
         """
         dataset create --type SubreadSet {output.xml} {input} >2 {log}
