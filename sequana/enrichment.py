@@ -30,6 +30,7 @@ from matplotlib_venn import venn2_unweighted, venn3_unweighted
 from sequana.summary import Summary
 
 import colorlog
+
 logger = colorlog.getLogger(__name__)
 
 
@@ -285,15 +286,12 @@ class PantherEnrichment:
     def _compute_enrichment(
         self,
         mygenes,
-        taxid,
         ontologies=None,
         enrichment_test="FISHER",
         correction="FDR",
         progress=True,
     ):
-        # taxid=83333 # ecoli
-        if taxid is None:
-            taxid = self.taxon
+
         if isinstance(mygenes, list):
             mygenes = ",".join(mygenes)
 
@@ -320,7 +318,7 @@ class PantherEnrichment:
             logger.info("Computing enrichment for {}".format(ontology))
             results = self.panther.get_enrichment(
                 mygenes,
-                taxid,
+                self.taxon,
                 ontology,
                 enrichment_test=enrichment_test,
                 correction=correction,
@@ -330,7 +328,7 @@ class PantherEnrichment:
                 logger.warning("Panther request failed Trying again")
                 results = self.panther.get_enrichment(
                     mygenes,
-                    taxid,
+                    self.taxon,
                     ontology,
                     enrichment_test=enrichment_test,
                     correction=correction,
@@ -1187,7 +1185,7 @@ class KeggPathwayEnrichment:
         ):
             logger.warning(
                 "Enrichment results are empty. Could be real because number of"
-                " deregulated genes is low or  an incompatible set of gene IDs." 
+                " deregulated genes is low or  an incompatible set of gene IDs."
                 " Please use BioMart to convert your IDs into external gene names "
             )
 
