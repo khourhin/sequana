@@ -288,22 +288,21 @@ class PantherEnrichment:
         mygenes,
         ontologies=None,
         enrichment_test="FISHER",
-        correction="FDR",
+        correction="fdr_bh",
         progress=True,
     ):
 
-        if isinstance(mygenes, list):
-            mygenes = ",".join(mygenes)
-
-        if mygenes.count(",") > 2000:
+        if len(mygenes) > 2000:
             logger.warning(
                 "Please reduce the list input genes. may fail on pantherb otherwise"
             )
-        if len(mygenes) <= 2:
+        elif len(mygenes) <= 2:
             logger.error(
-                f"Less than 2 genes are found for in the gene set: {mygenes}. No enrichment will be computed"
+                f"Less than 3 genes are found for in the gene set: {mygenes}. No enrichment will be computed"
             )
             return None, None
+
+        mygenes = ",".join(mygenes)
 
         if ontologies is None:
             ontologies = self.ontologies
@@ -311,8 +310,9 @@ class PantherEnrichment:
             for x in ontologies:
                 assert x in self.ontologies
 
-        # for each ontology categorym we will store one key/value item
-        enrichment = {}
+        # for each ontology category we will store one key/value item
+        enrichments = []
+        stats = {}
 
         for ontology in ontologies:
             logger.info("Computing enrichment for {}".format(ontology))
@@ -321,7 +321,7 @@ class PantherEnrichment:
                 self.taxon,
                 ontology,
                 enrichment_test=enrichment_test,
-                correction=correction,
+                correction="FDR",
             )
             count = 0
             while count < 2 and results == 404:
@@ -331,7 +331,7 @@ class PantherEnrichment:
                     self.taxon,
                     ontology,
                     enrichment_test=enrichment_test,
-                    correction=correction,
+                    correction="FDR",
                 )
                 count += 1
 
@@ -341,46 +341,35 @@ class PantherEnrichment:
                         ontology
                     )
                 )
-                enrichment[ontology] = None
+                enrichments[ontology] = None
                 continue
 
-            if isinstance(results["result"], dict):  # pragma: no cover
-                results["result"] = [results["result"]]
-            pvalues = [x["pValue"] for x in results["result"]]
+            df = pd.DataFrame(results["result"])
+            df["ontology"] = ontology
+
             import statsmodels
-            import statsmodels.stats.multitest
 
-            if correction == "FDR":
-                fdr = statsmodels.stats.multitest.multipletests(
-                    pvalues, method="fdr_bh"
-                )[1]
-            elif correction.lower() == "bonferroni":
-                fdr = statsmodels.stats.multitest.multipletests(
-                    pvalues, method="bonferroni"
-                )[1]
-            for i, pvalue in enumerate(pvalues):
-                results["result"][i]["fdr2"] = fdr[i]
-                if enrichment_test.lower() == "binomial":
-                    results["result"][i]["fdr"] = fdr[i]
+            df["padj"] = statsmodels.stats.multitest.multipletests(
+                df["pValue"], method=correction
+            )[1]
+            enrichments.append(df)
 
-            enrichment[ontology] = results
-        stats = dict([(k, len(v["result"])) for k, v in enrichment.items()])
-        stats["input_genes"] = len(mygenes.split(","))
+            unmapped = results["input_list"]["unmapped_id"]
+            stats[ontology] = {
+                "unmapped_genes": unmapped,
+                "N_unmapped_genes": len(unmapped),
+            }
 
-        try:
-            unmapped = enrichment[ontologies[0]]["input_list"]["unmapped_id"]
-            stats["unmapped_genes"] = unmapped
-            stats["N_unmapped_genes"] = len(unmapped)
-        except:
-            stats["unmapped_genes"] = []
-            stats["N_unmapped_genes"] = 0
+        enrichment_df = pd.concat(enrichments)
+
+        # Binomial correction has been removed, not sure it is used
 
         # Here, looking at the FDr, it appears that when using bonferroni,
         # all FDR are set to zeros. Moreover, when using Fisher tests and
         # FDR (supposibly a FDR_BH, the results are noisy as compare to a
         # test from statsmodels. Moreover, when using binomial test, the FDR
         # is not computed... So, we will recompute the FDR ourself
-        return enrichment, stats
+        return enrichment_df, stats
 
     def get_functional_classification(
         self, mygenes, taxon
