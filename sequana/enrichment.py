@@ -237,7 +237,7 @@ class PantherEnrichment:
         taxid=None,
         ontologies=None,
         enrichment_test="FISHER",
-        correction="FDR",
+        correction="fdr_bh",
         progress=True,
     ):
         """
@@ -274,9 +274,9 @@ class PantherEnrichment:
             (self.mygenes_down, self.mygenes_up, self.mygenes), ("down", "up", "all")
         ):
 
+            print(category)
             self.enrichment[category], self.stats[category] = self._compute_enrichment(
                 gene_list,
-                taxid=taxid,
                 ontologies=ontologies,
                 enrichment_test=enrichment_test,
                 correction=correction,
@@ -362,10 +362,23 @@ class PantherEnrichment:
 
         enrichment_df = pd.concat(enrichments)
         enrichment_df.reset_index(drop=True, inplace=True)
+        # Remove unclassified
+        dict_filter = [isinstance(x, dict) for x in enrichment_df.term]
+
+        # Verified that all removed are unclassified
+        assert set(enrichment_df.loc[[not x for x in dict_filter], "term"]) == {
+            "UNCLASSIFIED"
+        }
+
+        enrichment_df = enrichment_df.loc[dict_filter, :].copy()
+
+        # assert set([not isinstance(x, dict) for x in enrichment_df.term]) == {
+        #    "UNCLASSIFIED"
+        # }
+
         enrichment_df = pd.concat(
             [enrichment_df, pd.json_normalize(enrichment_df["term"])], axis=1
         )
-
         # Binomial correction has been removed, not sure it is used
 
         # Here, looking at the FDr, it appears that when using bonferroni,
