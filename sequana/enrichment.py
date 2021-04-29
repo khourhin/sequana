@@ -361,6 +361,10 @@ class PantherEnrichment:
             }
 
         enrichment_df = pd.concat(enrichments)
+        enrichment_df.reset_index(drop=True, inplace=True)
+        enrichment_df = pd.concat(
+            [enrichment_df, pd.json_normalize(enrichment_df["term"])], axis=1
+        )
 
         # Binomial correction has been removed, not sure it is used
 
