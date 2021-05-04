@@ -17,7 +17,7 @@ from sequana.lazy import pandas as pd
 
 from sequana.modules_report.base_module import SequanaBaseModule
 from sequana.utils.datatables_js import DataTable
-
+import os
 
 class RNAdiffModule(SequanaBaseModule):
     """ Write HTML report of variant calling. This class takes a csv file
@@ -44,7 +44,7 @@ class RNAdiffModule(SequanaBaseModule):
         self.create_main_report_content()
         self.create_individual_reports()
 
-        self.create_html(output_filename)
+        self.create_html(os.path.join(folder, output_filename))
         import matplotlib
         matplotlib.rc_file_defaults()
 
